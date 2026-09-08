@@ -1,0 +1,13 @@
+{
+  "name": "复习卡",
+  "short_name": "复习卡",
+  "description": "间隔重复复习卡（八股 / 学习自测）",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#bc3f2c",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
