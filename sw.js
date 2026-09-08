@@ -1,5 +1,5 @@
 const CACHE = "fcards-v47";
-const ASSETS = ["./index.html", "./manifest.json", "./icon-180.png", "./cards-data.js?v=20260908b", "./lessons-data.js?v=20260908b"];
+const ASSETS = ["./index.html", "./manifest.json", "./icon-180.png", "./cards-data.js?v=20260908c", "./lessons-data.js?v=20260908c"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
