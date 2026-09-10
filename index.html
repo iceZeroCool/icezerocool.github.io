@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="复习卡">
 <meta name="theme-color" content="#f5f1e8">
 <link rel="manifest" href="manifest.json">
-<script src="cards-data.js?v=20260908d"></script>
-<script src="lessons-data.js?v=20260908d"></script>
+<script src="cards-data.js?v=20260908e"></script>
+<script src="lessons-data.js?v=20260908e"></script>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png" type="image/png">
 <title>复习卡 · 间隔重复</title>
@@ -543,7 +543,7 @@
 <script>
 "use strict";
 const DB_KEY="fcards_v1";
-const BUILD_V="2026-09-08.10"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
+const BUILD_V="2026-09-08.11"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
 const today=()=>{const d=new Date(); d.setHours(0,0,0,0); return d;};
 const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
 const iso=d=>d.toISOString().slice(0,10);
@@ -993,9 +993,9 @@ function weekGo(d){ const n=weekCur+d; if(n<0||n>=lessonWeeks().length) return; 
 function weekJump(i){
   weekCur=i;
   const w=lessonWeeks()[i];
-  /* 切周定位：第一个未读的；全读过则该周最后一篇 */
+  /* 切周定位：第一个未读的（idx 新→旧）；全读过则回最新那篇 */
   const reads=lessonReadMap();
-  let target=w.idx[w.idx.length-1];
+  let target=w.idx[0];
   for(const j of w.idx){ if(!reads[LESSONS[j].date]){ target=j; break; } }
   lessonJump(target);
 }
@@ -1078,9 +1078,9 @@ function lessonJump(i){ lessonCur=i; renderLesson(); }
 /* 定位今天的文章：date<=今天的最新一篇 */
 function lessonToday(){
   const t=iso(today());
-  let idx=0;
-  LESSONS.forEach((L,i)=>{ if(L.date<=t) idx=i; });
-  return idx;
+  /* 数组按 date 降序（最新在前）：今日篇 = 第一个「今天或之前」的篇目 */
+  for(let i=0;i<LESSONS.length;i++){ if(LESSONS[i].date<=t) return i; }
+  return LESSONS.length-1;
 }
 document.getElementById("tocHead").onclick=e=>{
   if(e.target.classList.contains("tog")) tocToggleFn();
@@ -1169,9 +1169,9 @@ renderSyncPanel();
 lessonCur=lessonRestore();
 renderLesson();
 syncPullAndMerge();
-/* 有未上传的脏卡时：回前台/网络恢复立即补传（增量，几KB） */
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&dirtyCount()) queueSync(); });
-window.addEventListener("online",()=>{ if(dirtyCount()) queueSync(); });
+/* 回前台/网络恢复：先拉取合并（带 ver 304 免流量），有脏卡再补上传 */
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ syncPullAndMerge(); if(dirtyCount()) queueSync(); } });
+window.addEventListener("online",()=>{ syncPullAndMerge(); if(dirtyCount()) queueSync(); });
 
 /* ---------- 自动更新探针：version.json 对比 BUILD_V，有新版静默刷新 ----------
    冷启动由 SW network-first 天然拿到最新；本探针覆盖「App 挂后台好几天再回前台」的场景。
