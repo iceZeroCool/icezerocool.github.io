@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="复习卡">
 <meta name="theme-color" content="#f5f1e8">
 <link rel="manifest" href="manifest.json">
-<script src="cards-data.js?v=20260908i"></script>
-<script src="lessons-data.js?v=20260908i"></script>
+<script src="cards-data.js?v=20260908j"></script>
+<script src="lessons-data.js?v=20260908j"></script>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png" type="image/png">
 <title>复习卡 · 间隔重复</title>
@@ -464,21 +464,11 @@
     <div class="panel">
       <h3>云端同步（进度备份）</h3>
       <div id="syncBox">
-        <div id="syncForm">
-          <p class="impnote" style="margin-top:0;">输入一个同步码（6 位以上，自己起，只此一台手机+以后新手机用同一个码）。进度会自动备份到云端，换机或清数据后输入同一码即恢复。</p>
-          <div style="display:flex; gap:9px; align-items:center;">
-            <input id="syncCodeInput" placeholder="同步码，如 zhou2026" style="flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:12px; font-size:15px; outline:none;">
-            <button class="btn-sync" onclick="bindSyncCode()">绑定</button>
-          </div>
-          <div id="syncErr" class="impnote" style="color:var(--again); display:none; margin:8px 0 0;"></div>
-        </div>
-        <div id="syncInfo" style="display:none;">
-          <div class="setrow"><span>同步码</span><b id="syncCodeShow" style="font-size:14px;"></b></div>
+        <div id="syncInfo" style="display:block;">
           <div class="setrow"><span>状态</span><span id="syncStatus" style="font-size:13px; color:var(--muted);">尚未同步</span></div>
-          <p class="impnote">每答一题自动备份；打开 App 自动合并恢复。换手机：新手机装好后在此输入同一同步码即可。</p>
+          <p class="impnote">每答一题自动备份；打开 App 自动合并恢复。换手机：输入同一同步码即可。</p>
           <div style="display:flex; gap:9px;">
             <button class="btn-block" style="background:var(--accent); color:#fff; flex:1;" onclick="syncNow()">立即同步</button>
-            <button class="btn-block" style="background:var(--card); color:var(--ink); border:1px solid var(--line); flex:1;" onclick="unbindSync()">解绑</button>
           </div>
         </div>
       </div>
@@ -567,7 +557,7 @@
 <script>
 "use strict";
 const DB_KEY="fcards_v1";
-const BUILD_V="2026-09-08.16"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
+const BUILD_V="2026-09-08.17"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
 const today=()=>{const d=new Date(); d.setHours(0,0,0,0); return d;};
 const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
 const iso=d=>d.toISOString().slice(0,10);
@@ -583,12 +573,13 @@ function load(){
 function save(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 
 /* ---------- 云同步 v4.3（增量：只传答过的卡约1~3KB，替代原几百KB全量） ---------- */
-const SYNC_CODE_KEY="fcards_sync_code";
+/* 单用户自用：同步码写死，无绑码界面（换机输同号自动恢复） */
+const FIXED_SYNC_CODE="sole-fuxika-cards";
 const SYNC_ENDPOINT="https://1259294149-1lxu2zvdnd.ap-guangzhou.tencentscf.com/sync"; /* 腾讯云 SCF Web 函数，匿名公网 */
 let syncTimer=null, retryTimer=null, retryStep=0, failStreak=0;
 const RETRY_DELAYS=[30e3,2*60e3,10*60e3];
-function syncCode(){ return localStorage.getItem(SYNC_CODE_KEY)||""; }
-function syncEnabled(){ return !!syncCode(); }
+function syncCode(){ return FIXED_SYNC_CODE; }
+function syncEnabled(){ return true; }
 function markDirty(id){ DB.dirty=DB.dirty||{}; DB.dirty[id]=1; }
 function dirtyCount(){ return Object.keys(DB.dirty||{}).length; }
 function syncStatus(s){ const el=document.getElementById("syncStatus"); if(el) el.textContent=s; }
@@ -674,28 +665,8 @@ async function syncPullAndMerge(){
     else if(dirtyCount()) queueSync();
   }catch(e){ console.warn("云同步拉取失败",e); }
 }
-/* 同步码绑定 */
-function bindSyncCode(){
-  const err=document.getElementById("syncErr");
-  const v=(document.getElementById("syncCodeInput").value||"").trim();
-  if(v.length<6){ if(err){ err.textContent="同步码至少 6 位，再短容易被猜哦"; err.style.display="block"; } return; }
-  if(err) err.style.display="none";
-  localStorage.setItem(SYNC_CODE_KEY,v);
-  renderSyncPanel();
-  const st=document.getElementById("syncStatus"); if(st) st.textContent="正在从云端拉取…";
-  syncPullAndMerge().then(()=>{
-    const st2=document.getElementById("syncStatus");
-    if(st2 && !DB.cloudSyncedAt) st2.textContent="云端暂无数据，答题后会自动上传";
-    renderStats(); updatePill();
-  });
-}
-function unbindSync(){
-  localStorage.removeItem(SYNC_CODE_KEY);
-  renderSyncPanel();
-}
-/* 手动同步：拉取合并 + 有脏卡补上传，状态实时反馈 */
+/* 单用户自用：无需绑定（同步码写死），无绑定/解绑入口 */
 async function syncNow(){
-  if(!syncEnabled()){ const e=document.getElementById("syncErr"); if(e){ e.textContent="请先绑定同步码"; e.style.display="block"; } return; }
   const st=document.getElementById("syncStatus"); if(st) st.textContent="正在同步…";
   try{
     await syncPullAndMerge();
@@ -710,14 +681,8 @@ async function syncNow(){
 function renderSyncPanel(){
   const box=document.getElementById("syncBox");
   if(!box) return;
-  const on=syncEnabled();
-  document.getElementById("syncForm").style.display=on?"none":"block";
-  document.getElementById("syncInfo").style.display=on?"block":"none";
-  if(on){
-    document.getElementById("syncCodeShow").textContent=syncCode();
-    const st=document.getElementById("syncStatus");
-    st.textContent=DB.cloudSyncedAt?("已同步 "+new Date(DB.cloudSyncedAt).toLocaleTimeString()):"尚未同步";
-  }
+  const st=document.getElementById("syncStatus");
+  if(st) st.textContent=DB.cloudSyncedAt?("已同步 "+new Date(DB.cloudSyncedAt).toLocaleTimeString()):"尚未同步";
 }
 
 /* 预置卡库导入：按 PRESET_VERSION 增量合并，不影响已有进度 */
