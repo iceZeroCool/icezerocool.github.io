@@ -229,6 +229,18 @@
   .modal .mlabel{font-size:11px; font-weight:800; color:var(--muted); letter-spacing:2px; margin:2px 0 6px;}
   .modal .mback{font-size:14.5px; color:var(--ink); line-height:1.65; white-space:pre-wrap; word-break:break-word; padding-bottom:4px;}
   .modal .mmeta{margin-top:12px; padding-top:11px; border-top:1px dashed rgba(34,30,26,.15); font-size:12.5px; color:var(--muted); line-height:1.7;}
+  .modal .mrate{margin-top:12px; padding-top:11px; border-top:1px dashed rgba(34,30,26,.15);}
+  .modal .mratelab{font-size:11px; font-weight:800; color:var(--muted); letter-spacing:2px; display:block; margin-bottom:7px;}
+  .modal .mratebtns{display:grid; grid-template-columns:repeat(4,1fr); gap:7px;}
+  .modal .mratebtns button{border-radius:9px; padding:7px 0 6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px;
+    border:1px solid transparent; font-family:inherit; transition:transform .1s;}
+  .modal .mratebtns button:active{transform:scale(.94);}
+  .modal .mratebtns b{font-size:13px; font-weight:800;}
+  .modal .mratebtns i{font-size:10px; font-style:normal; opacity:.7; font-variant-numeric:tabular-nums;}
+  .modal .mratebtns button[data-q="0"]{background:#f5ddd6; border-color:#e7bcb1; color:#9c3121;}
+  .modal .mratebtns button[data-q="1"]{background:#f3e7ca; border-color:#e0caa0; color:#77520c;}
+  .modal .mratebtns button[data-q="2"]{background:#e2ebd6; border-color:#c4d6ae; color:#3c672d;}
+  .modal .mratebtns button[data-q="3"]{background:#dbeaee; border-color:#b7d1d7; color:#276878;}
   .citem{transition:transform .06s ease;}
   .citem:active{transform:scale(.985); background:#f4efe3;}
   .citem mark{background:#f3e2bb; color:#7a2f1f; border-radius:3px; padding:0 1px; font-weight:700;}
@@ -532,6 +544,15 @@
       <div id="cmBack" class="mback"></div>
     </div>
     <div class="mmeta" id="cmMeta"></div>
+    <div class="mrate" id="cmRate">
+      <span class="mratelab">这里直接评分</span>
+      <div class="mratebtns">
+        <button data-q="0"><b>忘记</b><i>明天</i></button>
+        <button data-q="1"><b>困难</b><i>明天</i></button>
+        <button data-q="2"><b>良好</b><i>×ease</i></button>
+        <button data-q="3"><b>简单</b><i>×1.3</i></button>
+      </div>
+    </div>
     <button class="btn-block" data-close style="width:100%; margin-top:6px;">关闭</button>
   </div>
 </div>
@@ -546,7 +567,7 @@
 <script>
 "use strict";
 const DB_KEY="fcards_v1";
-const BUILD_V="2026-09-08.15"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
+const BUILD_V="2026-09-08.16"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
 const today=()=>{const d=new Date(); d.setHours(0,0,0,0); return d;};
 const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
 const iso=d=>d.toISOString().slice(0,10);
@@ -913,6 +934,19 @@ function openCardDetail(id){
   document.getElementById("cmMeta").innerHTML=meta;
   document.getElementById("cardModal").classList.add("show");
   document.getElementById("cmBack").scrollTop=0;
+  /* 弹层直接评分：点四个按钮 → SM-2 更新该卡 + 刷新 + 同步 */
+  const rateBox=document.getElementById("cmRate");
+  rateBox.onclick=e=>{
+    const btn=e.target.closest("button[data-q]");
+    if(!btn) return;
+    const q=parseInt(btn.dataset.q);
+    const cc=DB.cards[id]; if(!cc) return;
+    applySM2(cc,q); /* 已含 lastReview 更新 + history 计数 */
+    save(); updatePill();
+    markDirty(cc.id); queueSync(); /* 同步该卡 */
+    openCardDetail(id); /* 重开刷新 meta/状态 */
+    renderManage(); /* 列表状态同步刷新 */
+  };
 }
 function mtap(e){
   if(e.target.closest("[data-close]")||e.target===document.getElementById("cardModal")) closeCardDetail();
