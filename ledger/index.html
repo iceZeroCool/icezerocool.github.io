@@ -71,6 +71,36 @@
   #bindForm{display:flex;gap:6px;margin-top:8px;}
   #bindForm input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;}
   .muted{color:var(--muted);font-size:12px;line-height:1.6;}
+
+  /* 左滑容器：下层放操作钮，上层卡片可左滑露出 */
+  .swipe{position:relative;overflow:hidden;border-radius:12px;margin-bottom:8px;border:1px solid rgba(34,30,26,.06);box-shadow:0 1px 3px rgba(34,30,26,.05);}
+  .swipe .actions{position:absolute;top:0;right:0;bottom:0;width:96px;display:flex;align-items:stretch;}
+  .swipe .actions button{flex:1;border:none;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+  .swipe .actions .act-edit{background:#b07714;}
+  .swipe .actions .act-del{background:var(--expense);}
+  .swipe .item-wrap{position:relative;z-index:1;background:var(--card);transform:translateX(0);transition:transform .22s ease;cursor:pointer;min-height:54px;}
+  .swipe.open .item-wrap{transform:translateX(-96px);}
+  .swipe .item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--card);border:none;box-shadow:none;}
+  .swipe .item:active{background:#f4efe3;}
+
+  /* 详情弹层 */
+  .modalmask{position:fixed;inset:0;z-index:98;display:none;align-items:flex-end;justify-content:center;background:rgba(30,26,20,.45);}
+  .modalmask.show{display:flex;animation:modalIn .18s ease;}
+  @keyframes modalIn{from{opacity:0}to{opacity:1}}
+  .modal{background:var(--bg);border:1px solid rgba(34,30,26,.08);border-top-left-radius:20px;border-top-right-radius:20px;
+    width:100%;max-width:440px;padding:16px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(30,26,20,.15);}
+  .modal .mtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .modal .mtop b{color:var(--accent);font-size:14px;letter-spacing:.5px;}
+  .modal .mclose{font-size:18px;color:var(--muted);padding:2px 8px;line-height:1;border:none;background:none;cursor:pointer;}
+  .modal .mamt{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:12px;}
+  .modal .mamt.in{color:var(--income);} .modal .mamt.ex{color:var(--expense);}
+  .modal .mrow{display:flex;padding:7px 0;border-top:1px solid rgba(34,30,26,.06);font-size:14px;}
+  .modal .mrow .k{width:70px;color:var(--muted);flex:0 0 auto;}
+  .modal .mrow .v{flex:1;color:var(--ink);word-break:break-word;}
+  .modal .mbtns{display:flex;gap:9px;margin-top:16px;}
+  .modal .mbtns button{border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;flex:1;}
+  .modal .mbtns .mb-edit{background:#b07714;color:#fff;}
+  .modal .mbtns .mb-del{background:var(--expense);color:#fff;}
 </style>
 </head>
 <body>
@@ -119,6 +149,24 @@
 
   <div class="listwrap" id="listWrap"><div class="muted" style="text-align:center;padding:40px 0;">还没有记账记录</div></div>
 </main>
+
+<!-- 详情弹层 -->
+<div id="detailModal" class="modalmask" onclick="if(event.target===this)closeDetail()">
+  <div class="modal">
+    <div class="mtop"><b>账单详情</b><button class="mclose" onclick="closeDetail()">✕</button></div>
+    <div class="mamt" id="dmAmt"></div>
+    <div class="mrow"><span class="k">分类</span><span class="v" id="dmCat"></span></div>
+    <div class="mrow"><span class="k">类型</span><span class="v" id="dmType"></span></div>
+    <div class="mrow"><span class="k">账户</span><span class="v" id="dmAcc"></span></div>
+    <div class="mrow"><span class="k">平台</span><span class="v" id="dmPlat"></span></div>
+    <div class="mrow"><span class="k">时间</span><span class="v" id="dmTime"></span></div>
+    <div class="mrow"><span class="k">备注</span><span class="v" id="dmNote"></span></div>
+    <div class="mbtns">
+      <button class="mb-edit" id="dmEdit">✎ 修改</button>
+      <button class="mb-del" id="dmDel">删除</button>
+    </div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -202,7 +250,85 @@ function editRecord(idx){
   if(rec.time) document.getElementById("fTime").value=rec.time;
   document.getElementById("fNote").value=rec.note||"";
   document.getElementById("btnSave").textContent="保存修改";
+  closeDetail();
   document.getElementById("entryForm").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ---------- 详情弹层 ---------- */
+let detailIdx=null;
+function openDetail(idx){
+  const r=DB.records[idx]; if(!r) return;
+  detailIdx=idx;
+  const isIn=r.type==="income";
+  document.getElementById("dmAmt").textContent=(isIn?"+":"−")+fmtNum(r.amount);
+  document.getElementById("dmAmt").className="mamt "+(isIn?"in":"ex");
+  document.getElementById("dmCat").textContent=r.category||"—";
+  document.getElementById("dmType").textContent=isIn?"收入":"支出";
+  document.getElementById("dmAcc").textContent=r.account||"—";
+  document.getElementById("dmPlat").textContent=r.platform||"—";
+  document.getElementById("dmTime").textContent=[r.date,r.time].filter(Boolean).join(" ")+"";
+  document.getElementById("dmNote").textContent=r.note||"—";
+  document.getElementById("detailModal").classList.add("show");
+}
+function closeDetail(){ document.getElementById("detailModal").classList.remove("show"); detailIdx=null; }
+document.getElementById("dmEdit").onclick=()=>{ if(detailIdx!==null) editRecord(detailIdx); };
+document.getElementById("dmDel").onclick=()=>{
+  if(detailIdx===null) return;
+  if(confirm("删除这笔记录？")){ DB.records.splice(detailIdx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
+  closeDetail();
+};
+
+/* ---------- 左滑手势 ---------- */
+function bindSwipe(wrap){
+  let startX=0,startY=0,curSwipe=null,dragging=false,dx=0;
+  wrap.addEventListener("touchstart",e=>{
+    const swipe=e.target.closest(".swipe");
+    if(!swipe) return;
+    /* 点操作按钮不动卡片 */
+    if(e.target.closest(".actions")) return;
+    curSwipe=swipe;
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    dragging=false; dx=0;
+    /* 其它打开的先收起 */
+    wrap.querySelectorAll(".swipe.open").forEach(s=>{ if(s!==swipe) s.classList.remove("open"); });
+  },{passive:true});
+  wrap.addEventListener("touchmove",e=>{
+    if(!curSwipe) return;
+    const t=e.touches[0];
+    dx=t.clientX-startX; const dyErr=Math.abs(t.clientY-startY);
+    if(Math.abs(dx)<6||Math.abs(dx)<dyErr) return; /* 不是水平滑动/倾斜太大忽略 */
+    dragging=true;
+    const item=curSwipe.querySelector(".item-wrap");
+    const off=Math.max(-96,Math.min(0,dx));
+    item.style.transition="none"; item.style.transform=`translateX(${off}px)`;
+    e.preventDefault();
+  },{passive:false});
+  wrap.addEventListener("touchend",()=>{
+    if(!curSwipe||!dragging){ curSwipe=null; return; }
+    const item=curSwipe.querySelector(".item-wrap");
+    item.style.transition="";
+    if(dx < -32) curSwipe.classList.add("open"); /* 左滑超过阈值打开 */
+    else curSwipe.classList.remove("open");
+    item.style.transform="";
+    curSwipe=null; dragging=false;
+  });
+}
+/* 点击卡片主体 → 详情；点操作钮 → 对应动作（不冒泡到详情） */
+function bindTap(wrap){
+  wrap.addEventListener("click",e=>{
+    if(e.target.closest(".swipe .actions")){
+      const btn=e.target.closest("button");
+      const swipe=btn.closest(".swipe");
+      const idx=parseInt(swipe.dataset.idx);
+      if(btn.classList.contains("act-edit")){ editRecord(idx); }
+      else if(btn.classList.contains("act-del")){
+        if(confirm("删除这笔记录？")){ DB.records.splice(idx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
+      }
+      return;
+    }
+    const item=e.target.closest(".item-wrap");
+    if(item){ const swipe=item.closest(".swipe"); if(swipe) openDetail(parseInt(swipe.dataset.idx)); }
+  });
 }
 
 /* ---------- 列表 + 汇总 ---------- */
@@ -211,30 +337,29 @@ function renderList(){
   const wrap=document.getElementById("listWrap");
   if(!items.length){ wrap.innerHTML='<div class="muted" style="text-align:center;padding:40px 0;">还没有记账记录<br>点上面记第一笔</div>'; }
   else{
-    wrap.innerHTML=items.map((r,i)=>{
+    wrap.innerHTML=items.map(r=>{
       const amt=fmtNum(r.amount);
       const isIn=r.type==="income";
       const date=r.date.slice(5).replace("-","/");
       const time=r.time?(" "+r.time):"";
       const sub=[r.account,r.platform,r.note].filter(Boolean).join(" · ");
-      const oi=DB.records.indexOf(r); /* 原数组下标（对象唯一引用，可靠） */
-      return `<div class="item" data-edit="${oi}">
-        <div class="left"><div class="cat">${r.category}</div><div class="sub">${date}${time}${sub?' · '+sub:''}</div></div>
-        <div class="amt ${isIn?'in':'ex'}">${isIn?'+':'−'}${amt}</div>
-        <button class="del" data-del="${oi}" title="删除">✕</button>
+      const oi=DB.records.indexOf(r);
+      return `<div class="swipe" data-idx="${oi}">
+        <div class="actions">
+          <button class="act-edit">✎<br>修改</button>
+          <button class="act-del">🗑<br>删除</button>
+        </div>
+        <div class="item-wrap">
+          <div class="item">
+            <div class="left"><div class="cat">${r.category}</div><div class="sub">${date}${time}${sub?' · '+sub:''}</div></div>
+            <div class="amt ${isIn?'in':'ex'}">${isIn?'+':'−'}${amt}</div>
+          </div>
+        </div>
       </div>`;
     }).join("");
   }
-  wrap.onclick=e=>{
-    const del=e.target.closest(".del");
-    if(del){ /* 点删除：删且不进入编辑 */
-      const idx=parseInt(del.dataset.del);
-      if(!isNaN(idx)&&DB.records[idx]&&confirm("删除这笔记录？")){ DB.records.splice(idx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
-      return;
-    }
-    const it=e.target.closest(".item[data-edit]");
-    if(it){ const idx=parseInt(it.dataset.edit); if(!isNaN(idx)) editRecord(idx); }
-  };
+  bindSwipe(wrap);
+  bindTap(wrap);
   renderSummary();
 }
 function renderSummary(){
