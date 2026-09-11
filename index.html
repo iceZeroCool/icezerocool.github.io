@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="复习卡">
 <meta name="theme-color" content="#f5f1e8">
 <link rel="manifest" href="manifest.json">
-<script src="cards-data.js?v=20260908h"></script>
-<script src="lessons-data.js?v=20260908h"></script>
+<script src="cards-data.js?v=20260908i"></script>
+<script src="lessons-data.js?v=20260908i"></script>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png" type="image/png">
 <title>复习卡 · 间隔重复</title>
@@ -464,8 +464,10 @@
           <div class="setrow"><span>同步码</span><b id="syncCodeShow" style="font-size:14px;"></b></div>
           <div class="setrow"><span>状态</span><span id="syncStatus" style="font-size:13px; color:var(--muted);">尚未同步</span></div>
           <p class="impnote">每答一题自动备份；打开 App 自动合并恢复。换手机：新手机装好后在此输入同一同步码即可。</p>
-          <button class="btn-block" style="background:var(--accent); color:#fff; width:60%; margin:0 auto;" onclick="syncNow()">立即同步</button>
-          <button class="btn-block" style="background:var(--card); color:var(--ink); border:1px solid var(--line); width:60%; margin:6px auto 0;" onclick="unbindSync()">解绑（不删云端数据）</button>
+          <div style="display:flex; gap:9px;">
+            <button class="btn-block" style="background:var(--accent); color:#fff; flex:1;" onclick="syncNow()">立即同步</button>
+            <button class="btn-block" style="background:var(--card); color:var(--ink); border:1px solid var(--line); flex:1;" onclick="unbindSync()">解绑</button>
+          </div>
         </div>
       </div>
     </div>
@@ -544,7 +546,7 @@
 <script>
 "use strict";
 const DB_KEY="fcards_v1";
-const BUILD_V="2026-09-08.14"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
+const BUILD_V="2026-09-08.15"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
 const today=()=>{const d=new Date(); d.setHours(0,0,0,0); return d;};
 const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
 const iso=d=>d.toISOString().slice(0,10);
