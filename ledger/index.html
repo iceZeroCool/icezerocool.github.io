@@ -136,15 +136,7 @@
   </div>
 
   <div id="syncBox">
-    <div class="syncbar"><span class="st" id="syncSt">未绑定同步码</span><button id="btnSyncNow" style="display:none;">立即同步</button></div>
-    <div id="bindWrap" style="display:none;">
-      <div id="bindForm">
-        <input id="syncCodeInput" placeholder="输入同步码（6位以上）">
-        <button class="btn" style="width:auto;padding:9px 16px;" id="btnBind">绑定</button>
-      </div>
-      <p class="muted" style="margin:6px 0 0;line-height:1.5;">云同步用飞书存储，换手机输同一同步码全恢复。<br>可绑定两个序列用的码：<code>zhou2026</code></p>
-      <button id="btnUnbind" style="margin-top:8px;border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;">解绑</button>
-    </div>
+    <div class="syncbar"><span class="st" id="syncSt" style="flex:1;font-size:12.5px;color:var(--muted);">云端同步</span><button id="btnSyncNow">立即同步</button></div>
   </div>
 
   <div class="listwrap" id="listWrap"><div class="muted" style="text-align:center;padding:40px 0;">还没有记账记录</div></div>
@@ -172,14 +164,15 @@
 "use strict";
 /* ---------- 常量 ---------- */
 const SCF="https://1259294149-1lxu2zvdnd.ap-guangzhou.tencentscf.com/ledger";
-const CODE_KEY="ledger_sync_code";
+/* 单用户自用：同步码写死在代码里，不做绑码界面（换机输同号自动恢复） */
+const SYNC_CODE="sole-fuxika-ledger";
 const LEDGER_KEY="ledger_data";
 const CATS_EX=["餐饮","交通","购物","日用","娱乐","医疗","住房","通讯","人情","其他"];
 const CATS_IN=["工资","奖金","兼职","理财","红包","其他"];
 const ACCOUNTS=["微信","支付宝","银行卡","现金","其他"];
 
 /* ---------- 数据 ---------- */
-let DB={records:[],syncCode:localStorage.getItem(CODE_KEY)||""};
+let DB={records:[]};
 function saveLocal(){ try{localStorage.setItem(LEDGER_KEY,JSON.stringify(DB.records));}catch(e){} }
 function loadLocal(){ try{const r=JSON.parse(localStorage.getItem(LEDGER_KEY)||"[]"); if(Array.isArray(r))DB.records=r;}catch(e){} }
 
@@ -235,7 +228,7 @@ document.getElementById("btnSave").onclick=()=>{
   document.getElementById("fAmount").value=""; document.getElementById("fNote").value="";
   dateTimeNow();
   document.getElementById("btnSave").textContent="记一笔";
-  if(DB.syncCode) syncUp();
+  syncUp();
 };
 /* 点列表项 → 编辑（填充表单进入编辑态） */
 function editRecord(idx){
@@ -274,7 +267,7 @@ function closeDetail(){ document.getElementById("detailModal").classList.remove(
 document.getElementById("dmEdit").onclick=()=>{ if(detailIdx!==null) editRecord(detailIdx); };
 document.getElementById("dmDel").onclick=()=>{
   if(detailIdx===null) return;
-  if(confirm("删除这笔记录？")){ DB.records.splice(detailIdx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
+  if(confirm("删除这笔记录？")){ DB.records.splice(detailIdx,1); saveLocal(); renderList(); syncUp(); }
   closeDetail();
 };
 
@@ -322,7 +315,7 @@ function bindTap(wrap){
       const idx=parseInt(swipe.dataset.idx);
       if(btn.classList.contains("act-edit")){ editRecord(idx); }
       else if(btn.classList.contains("act-del")){
-        if(confirm("删除这笔记录？")){ DB.records.splice(idx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
+        if(confirm("删除这笔记录？")){ DB.records.splice(idx,1); saveLocal(); renderList(); syncUp(); }
       }
       return;
     }
@@ -402,7 +395,7 @@ async function syncUp(){
 }
 function recKey(r){ return [r.date,r.time||"",r.type,r.amount,r.category,r.account].join("|"); }
 async function api(method,action,payload){
-  const url=SCF+"?code="+encodeURIComponent(DB.syncCode)+(action?("&action="+action):"");
+  const url=SCF+"?code="+encodeURIComponent(SYNC_CODE)+(action?("&action="+action):"");
   const opt={method,headers:{"Content-Type":"application/json"}};
   if(payload) opt.body=JSON.stringify(payload);
   const r=await fetch(url,opt);
@@ -410,22 +403,13 @@ async function api(method,action,payload){
   return await r.json();
 }
 
-/* ---------- 绑码 ---------- */
+/* 单用户：无绑码界面，只显示同步状态 + 手动同步 */
 function renderSync(){
   const st=document.getElementById("syncSt");
-  const on=!!DB.syncCode;
-  document.getElementById("bindWrap").style.display=on?"none":"block";
-  document.getElementById("btnSyncNow").style.display=on?"block":"none";
-  if(st) st.textContent=on?("已绑定 "+DB.syncCode):"未绑定同步码";
+  if(st) st.textContent="云端同步";
+  document.getElementById("bindWrap").style.display="none";
+  document.getElementById("btnSyncNow").style.display="block";
 }
-document.getElementById("btnBind").onclick=()=>{
-  const v=(document.getElementById("syncCodeInput").value||"").trim();
-  if(v.length<6){ alert("同步码至少6位"); return; }
-  DB.syncCode=v; localStorage.setItem(CODE_KEY,v); renderSync();
-  const st=document.getElementById("syncSt"); st.textContent="同步中…";
-  syncUp();
-};
-document.getElementById("btnUnbind").onclick=()=>{ DB.syncCode=""; localStorage.removeItem(CODE_KEY); renderSync(); };
 document.getElementById("btnSyncNow").onclick=()=>syncUp();
 
 /* ---------- init ---------- */
@@ -435,7 +419,7 @@ setSeg();
 dateTimeNow();
 renderList();
 renderSync();
-if(DB.syncCode){ syncUp(); } /* 启动静默拉取 */
+syncUp(); /* 启动静默拉取 */
 </script>
 </body>
 </html>
