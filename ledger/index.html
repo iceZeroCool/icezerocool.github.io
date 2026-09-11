@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="拾账本">
+<meta name="theme-color" content="#f5f1e8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="../icon-180.png" type="image/png">
+<title>拾账本</title>
+<style>
+  :root{
+    --bg:#f5f1e8; --card:#fffdf8; --ink:#221e1a; --muted:#8a8071;
+    --accent:#bc3f2c; --accent-soft:#f7e8e3;
+    --income:#3a7d8c; --expense:#bc3f2c;
+    --line:#e5dfd1;
+    --shadow:0 1px 3px rgba(34,30,26,.05), 0 8px 26px rgba(34,30,26,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;-webkit-text-size-adjust:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:16px;display:flex;flex-direction:column;height:100%;}
+  .topbar{padding:calc(14px + env(safe-area-inset-top)) 18px 8px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.5px;}
+  main{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 18px;max-width:520px;width:100%;margin:0 auto;}
+
+  /* 汇总卡 */
+  .summary{background:var(--card);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);margin:4px 0 12px;border:1px solid rgba(34,30,26,.06);}
+  .sumrow{display:flex;gap:8px;align-items:baseline;}
+  .sumrow .bal{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .sumrow .sublab{font-size:12px;color:var(--muted);}
+  .sums{display:flex;gap:14px;margin-top:8px;font-size:13px;}
+  .sums .in{color:var(--income);} .sums .ex{color:var(--expense);}
+
+  /* 记一笔表单 */
+  .form{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid rgba(34,30,26,.06);}
+  .form .row{display:flex;gap:8px;margin-bottom:9px;}
+  .form input,.form select{
+    border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:15px;
+    font-family:inherit;color:var(--ink);outline:none;min-width:0;flex:1;
+  }
+  .form .amount{flex:1.4;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .form .seg{display:flex;flex:0 0 auto;gap:5px;}
+  .form .seg button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700;font-family:inherit;color:var(--muted);cursor:pointer;}
+  .form .seg button.on-ex{background:var(--expense);border-color:var(--expense);color:#fff;}
+  .form .seg button.on-in{background:var(--income);border-color:var(--income);color:#fff;}
+  .form .cats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
+  .form .cats button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:13px;font-family:inherit;color:var(--ink);cursor:pointer;}
+  .form .cats button.on{background:var(--ink);color:#f5f1e8;border-color:var(--ink);}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;width:100%;}
+
+  /* 列表 */
+  .listwrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:30px;}
+  .item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:8px;border:1px solid rgba(34,30,26,.06);box-shadow:0 1px 2px rgba(34,30,26,.03);}
+  .item .left{flex:1;min-width:0;}
+  .item .cat{font-size:15px;font-weight:700;}
+  .item .sub{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .item .amt{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .item .amt.ex{color:var(--expense);} .item .amt.in{color:var(--income);}
+  .item .del{flex:0 0 auto;border:none;background:none;color:var(--muted);font-size:16px;padding:4px 6px;cursor:pointer;}
+
+  /* 同步面板 */
+  #syncBox{margin-top:12px;}
+  .syncbar{background:var(--card);border:1px solid rgba(34,30,26,.06);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .syncbar .st{flex:1;font-size:12.5px;color:var(--muted);}
+  .syncbar button{border:1px solid var(--accent);background:none;color:var(--accent);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+  #bindForm{display:flex;gap:6px;margin-top:8px;}
+  #bindForm input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;}
+  .muted{color:var(--muted);font-size:12px;line-height:1.6;}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span style="font-size:22px;">🧾</span><h1>拾账本</h1></div>
+  <span id="syncStatus" style="font-size:12px;color:var(--muted);"></span>
+</header>
+<main>
+  <div class="summary">
+    <div class="sumrow"><span class="bal" id="sBalance">0.00</span><span class="sublab">结余</span></div>
+    <div class="sums"><span class="in">收 +<b id="sIncome">0</b></span><span class="ex">支 -<b id="sExpense">0</b></span><span class="sublab" id="mCount">0 笔</span></div>
+  </div>
+
+  <div class="form" id="entryForm">
+    <div class="row">
+      <input class="amount" id="fAmount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="金额">
+      <div class="seg">
+        <button id="segEx" class="on-ex">支出</button>
+        <button id="segIn">收入</button>
+      </div>
+    </div>
+    <div class="cats" id="catRow"></div>
+    <div class="row">
+      <select id="fAccount"><option value="微信">微信</option><option value="支付宝">支付宝</option><option value="银行卡">银行卡</option><option value="现金">现金</option><option value="其他">其他</option></select>
+      <select id="fPlatform"><option value="线下">线下</option><option value="淘宝">淘宝</option><option value="美团">美团</option><option value="京东">京东</option><option value="拼多多">拼多多</option><option value="其他">其他</option></select>
+    </div>
+    <div class="row"><input id="fNote" placeholder="备注（可空）" maxlength="40"></div>
+    <button class="btn" id="btnSave">记一笔</button>
+  </div>
+
+  <div id="syncBox">
+    <div class="syncbar"><span class="st" id="syncSt">未绑定同步码</span><button id="btnSyncNow" style="display:none;">立即同步</button></div>
+    <div id="bindWrap" style="display:none;">
+      <div id="bindForm">
+        <input id="syncCodeInput" placeholder="输入同步码（6位以上）">
+        <button class="btn" style="width:auto;padding:9px 16px;" id="btnBind">绑定</button>
+      </div>
+      <p class="muted" style="margin:6px 0 0;line-height:1.5;">云同步用飞书存储，换手机输同一同步码全恢复。<br>可绑定两个序列用的码：<code>zhou2026</code></p>
+      <button id="btnUnbind" style="margin-top:8px;border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;">解绑</button>
+    </div>
+  </div>
+
+  <div class="listwrap" id="listWrap"><div class="muted" style="text-align:center;padding:40px 0;">还没有记账记录</div></div>
+</main>
+
+<script>
+"use strict";
+/* ---------- 常量 ---------- */
+const SCF="https://1259294149-1lxu2zvdnd.ap-guangzhou.tencentscf.com/ledger";
+const CODE_KEY="ledger_sync_code";
+const LEDGER_KEY="ledger_data";
+const CATS_EX=["餐饮","交通","购物","日用","娱乐","医疗","住房","通讯","人情","其他"];
+const CATS_IN=["工资","奖金","兼职","理财","红包","其他"];
+const ACCOUNTS=["微信","支付宝","银行卡","现金","其他"];
+
+/* ---------- 数据 ---------- */
+let DB={records:[],syncCode:localStorage.getItem(CODE_KEY)||""};
+function saveLocal(){ try{localStorage.setItem(LEDGER_KEY,JSON.stringify(DB.records));}catch(e){} }
+function loadLocal(){ try{const r=JSON.parse(localStorage.getItem(LEDGER_KEY)||"[]"); if(Array.isArray(r))DB.records=r;}catch(e){} }
+
+/* ---------- 渲染 · 表单 ---------- */
+let curType="expense", curCat="餐饮";
+function renderCats(){
+  const list=curType==="income"?CATS_IN:CATS_EX;
+  document.getElementById("catRow").innerHTML=list.map(c=>
+    `<button class="${c===curCat?'on':''}" data-cat="${c}">${c}</button>`).join("");
+}
+document.getElementById("catRow").onclick=e=>{const b=e.target.closest("button[data-cat]"); if(b){curCat=b.dataset.cat; renderCats();}};
+document.getElementById("segEx").onclick=()=>{curType="expense";curCat=curType==="income"?(CATS_IN.includes(curCat)?curCat:CATS_IN[0]):(CATS_EX.includes(curCat)?curCat:CATS_EX[0]);setSeg();};
+document.getElementById("segIn").onclick=()=>{curType="income";curCat=(CATS_IN.includes(curCat)?curCat:CATS_IN[0]);setSeg();};
+function setSeg(){
+  document.getElementById("segEx").classList.toggle("on-ex",curType==="expense");
+  document.getElementById("segEx").classList.toggle("on-in",false);
+  document.getElementById("segIn").classList.toggle("on-in",curType==="income");
+  document.getElementById("segIn").classList.toggle("on-ex",false);
+  // 归类：收入分类必须是收入类
+  if(curType==="income"&&!CATS_IN.includes(curCat)) curCat=CATS_IN[0];
+  if(curType==="expense"&&!CATS_EX.includes(curCat)) curCat=CATS_EX[0];
+  renderCats();
+}
+function fmtNum(n){ return Number(n||0).toFixed(2); }
+document.getElementById("btnSave").onclick=()=>{
+  const amt=parseFloat(document.getElementById("fAmount").value);
+  if(!amt||amt<=0){ alert("请输入金额"); return; }
+  const rec={amount:amt,type:curType,category:curCat,account:document.getElementById("fAccount").value,
+    platform:document.getElementById("fPlatform").value,date:new Date().toISOString().slice(0,10),
+    note:document.getElementById("fNote").value.trim()};
+  DB.records.push(rec); saveLocal(); renderList();
+  document.getElementById("fAmount").value=""; document.getElementById("fNote").value="";
+  if(DB.syncCode) syncUp();
+};
+
+/* ---------- 列表 + 汇总 ---------- */
+function renderList(){
+  const items=DB.records.slice().sort((a,b)=>a.date<b.date?1:-1);
+  const wrap=document.getElementById("listWrap");
+  if(!items.length){ wrap.innerHTML='<div class="muted" style="text-align:center;padding:40px 0;">还没有记账记录<br>点上面记第一笔</div>'; }
+  else{
+    wrap.innerHTML=items.map((r,i)=>{
+      const amt=fmtNum(r.amount);
+      const isIn=r.type==="income";
+      const date=r.date.slice(5).replace("-","/");
+      const sub=[r.account,r.platform,r.note].filter(Boolean).join(" · ");
+      const oi=DB.records.indexOf(r); /* 原数组下标（对象唯一引用，可靠） */
+      return `<div class="item">
+        <div class="left"><div class="cat">${r.category}</div><div class="sub">${date}${sub?' · '+sub:''}</div></div>
+        <div class="amt ${isIn?'in':'ex'}">${isIn?'+':'−'}${amt}</div>
+        <button class="del" data-del="${oi}" title="删除">✕</button>
+      </div>`;
+    }).join("");
+  }
+  wrap.onclick=e=>{
+    const del=e.target.closest(".del"); if(!del) return;
+    const idx=parseInt(del.dataset.del);
+    if(!isNaN(idx)&&DB.records[idx]&&confirm("删除这笔记录？")){ DB.records.splice(idx,1); saveLocal(); renderList(); if(DB.syncCode) syncUp(); }
+  };
+  renderSummary();
+}
+function renderSummary(){
+  let inc=0,exp=0;
+  DB.records.forEach(r=>{ if(r.type==="income") inc+=r.amount; else exp+=r.amount; });
+  document.getElementById("sIncome").textContent=fmtNum(inc);
+  document.getElementById("sExpense").textContent=fmtNum(exp);
+  document.getElementById("sBalance").textContent=fmtNum(inc-exp);
+ ael(document.getElementById("mCount"), DB.records.length+" 笔");
+}
+function ael(el,t){ if(el) el.textContent=t; }
+
+/* ---------- 云同步（SCF /ledger）----------
+ * 策略：本地无云端id的记录先上传 → 拉云端全量 → 按 recKey 合并去重 → 刷新 */
+async function syncUp(){
+  const el=document.getElementById("syncSt"); if(el) el.textContent="同步中…";
+  try{
+    /* 1) 本地新记录（无 record_id）上传，拿到云端 id */
+    for(const r of DB.records){
+      if(!r.record_id){
+        const d=await api("POST","add",r);
+        if(d&&d.record_id) r.record_id=d.record_id;
+      }
+    }
+    /* 2) 拉云端全量 */
+    const cloud=await api("GET");
+    const cloudRecs=cloud.records||[];
+    /* 3) 按 recKey 合并：云端有本地没有 → 补本地；都有 → 保留一条并带上 record_id */
+    const byKey=new Map();
+    cloudRecs.forEach(c=>byKey.set(recKey(c),c));
+    DB.records.forEach(l=>{
+      const k=recKey(l);
+      if(byKey.has(k)){ const cur=byKey.get(k); if(l.record_id) cur.record_id=l.record_id; }
+      else byKey.set(k,l);
+    });
+    DB.records=[...byKey.values()];
+    saveLocal(); renderList();
+    const el2=document.getElementById("syncSt"); if(el2) el2.textContent="已同步 "+new Date().toLocaleTimeString();
+  }catch(e){ const el3=document.getElementById("syncSt"); if(el3) el3.textContent="同步失败："+(e&&e.message||e); }
+}
+function recKey(r){ return [r.date,r.type,r.amount,r.category,r.account].join("|"); }
+async function api(method,action,payload){
+  const url=SCF+"?code="+encodeURIComponent(DB.syncCode)+(action?("&action="+action):"");
+  const opt={method,headers:{"Content-Type":"application/json"}};
+  if(payload) opt.body=JSON.stringify(payload);
+  const r=await fetch(url,opt);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return await r.json();
+}
+
+/* ---------- 绑码 ---------- */
+function renderSync(){
+  const st=document.getElementById("syncSt");
+  const on=!!DB.syncCode;
+  document.getElementById("bindWrap").style.display=on?"none":"block";
+  document.getElementById("btnSyncNow").style.display=on?"block":"none";
+  if(st) st.textContent=on?("已绑定 "+DB.syncCode):"未绑定同步码";
+}
+document.getElementById("btnBind").onclick=()=>{
+  const v=(document.getElementById("syncCodeInput").value||"").trim();
+  if(v.length<6){ alert("同步码至少6位"); return; }
+  DB.syncCode=v; localStorage.setItem(CODE_KEY,v); renderSync();
+  const st=document.getElementById("syncSt"); st.textContent="同步中…";
+  syncUp();
+};
+document.getElementById("btnUnbind").onclick=()=>{ DB.syncCode=""; localStorage.removeItem(CODE_KEY); renderSync(); };
+document.getElementById("btnSyncNow").onclick=()=>syncUp();
+
+/* ---------- init ---------- */
+loadLocal();
+renderCats();
+setSeg();
+renderList();
+renderSync();
+if(DB.syncCode){ syncUp(); } /* 启动静默拉取 */
+</script>
+</body>
+</html>
