@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="复习卡">
 <meta name="theme-color" content="#f5f1e8">
 <link rel="manifest" href="manifest.json">
-<script src="cards-data.js?v=20260918b"></script>
-<script src="lessons-data.js?v=20260918b"></script>
+<script src="cards-data.js?v=20260918c"></script>
+<script src="lessons-data.js?v=20260918c"></script>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png" type="image/png">
 <title>复习卡 · 间隔重复</title>
@@ -317,17 +317,18 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none;
   }
   .weeksel .warr.dis{opacity:.28; pointer-events:none;}
-  .weeksel .wpills{flex:1; display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px;}
+  .weeksel .wpills{flex:1; display:flex; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px;}
   .weeksel .wpills::-webkit-scrollbar{display:none;}
   .weeksel .wp{
-    flex:0 0 auto; padding:6px 14px; border-radius:999px; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer;
-    white-space:nowrap; position:relative;
+    flex:1 0 auto; min-width:0; padding:6px 8px; border-radius:999px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:12.5px; font-weight:700; cursor:pointer;
+    white-space:nowrap; position:relative; text-align:center;
   }
   .weeksel .wp.cur{background:var(--ink); color:#f5f1e8; border-color:var(--ink);}
   .weeksel .wp .wcnt{
-    display:inline-block; margin-left:4px; font-size:10px; opacity:.6; font-variant-numeric:tabular-nums;
+    display:none; margin-left:4px; font-size:10px; opacity:.6; font-variant-numeric:tabular-nums;
   }
+  .weeksel .wp.cur .wcnt{display:inline-block;}
   .lesson-nav{display:flex; gap:9px; margin-top:16px;}
   .lesson-nav button{
     flex:1; border:1px solid var(--line); background:var(--card); color:var(--ink);
@@ -557,7 +558,7 @@
 <script>
 "use strict";
 const DB_KEY="fcards_v1";
-const BUILD_V="2026-09-18.2"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
+const BUILD_V="2026-09-18.3"; /* 与 version.json 同步改：内容更新后两者一起 bump，手机端自动刷新靠它对比 */
 const today=()=>{const d=new Date(); d.setHours(0,0,0,0); return d;};
 const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
 const iso=d=>d.toISOString().slice(0,10);
